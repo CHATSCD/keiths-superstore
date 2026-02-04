@@ -36,7 +36,7 @@ interface InventoryItem {
 }
 
 const defaultEmployees: Employee[] = [
-  { id: "1", name: "Marcus Johnson", role: "manager", active: true },
+  { id: "1", name: "Shaun Dubuisson", role: "manager", active: true },
   { id: "2", name: "Sarah Williams", role: "employee", active: true },
   { id: "3", name: "David Chen", role: "employee", active: true },
   { id: "4", name: "Emily Rodriguez", role: "employee", active: true },
@@ -370,14 +370,80 @@ export default function UploadPage() {
                 if (m.status === 'recognizing text') {
                   setOcrProgress(Math.round(m.progress * 100));
                 }
-              }
+              },
+              tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
+              tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ,.-/&\'',
+              preserve_interword_spaces: '1',
             }
           );
 
-          setProcessingStatus("Extracting items from OCR text...");
+          setProcessingStatus("Extracting waste items from form...");
           
-          // Parse OCR text same way as text files
-          const extractedItems = parseFileContent(text);
+          // Split text into lines
+          const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+          
+          // Look for item names - these are typically food items
+          const wasteItems: string[] = [];
+          let inWasteSection = false;
+          
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const lowerLine = line.toLowerCase();
+            
+            // Detect waste section headers
+            if (lowerLine.includes('waste') || lowerLine.includes('item')) {
+              inWasteSection = true;
+              continue;
+            }
+            
+            // Skip header rows
+            if (lowerLine.includes('time') || lowerLine.includes('quantity') || 
+                lowerLine.includes('reason') || lowerLine.includes('shift') ||
+                lowerLine.includes('discarded')) {
+              continue;
+            }
+            
+            // Skip branded items section markers
+            if (lowerLine.includes('pizza') || lowerLine.includes('wings') || 
+                lowerLine.includes('bites') || lowerLine.match(/^\d+\s*$/)) {
+              continue;
+            }
+            
+            // Extract item names - look for food-related words
+            if (inWasteSection && line.length > 2 && line.length < 50) {
+              // Clean up the line
+              const cleanedLine = line
+                .replace(/[|\\]/g, 'I')
+                .replace(/\s+/g, ' ')
+                .replace(/^\d+\s*/, '') // Remove leading numbers
+                .replace(/\s*\d+$/, '') // Remove trailing numbers
+                .trim();
+              
+              // Check if it looks like a food item name
+              if (cleanedLine.length >= 3 && 
+                  !cleanedLine.match(/^(qty|total|shift)$/i) &&
+                  cleanedLine.match(/[a-zA-Z]{3,}/)) {
+                
+                // Capitalize properly
+                const properName = cleanedLine
+                  .split(' ')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                  .join(' ');
+                
+                wasteItems.push(properName);
+              }
+            }
+          }
+          
+          // Remove duplicates and filter out common false positives
+          const uniqueItems = [...new Set(wasteItems)].filter(item => {
+            const lower = item.toLowerCase();
+            return !['waste', 'item', 'branded', 'breakfast', 'roller', 'deli', 
+                     'bakery', 'dinner', 'sandwiches', 'items', 'keith', 'superstore',
+                     'time', 'quantity', 'reason'].includes(lower);
+          });
+          
+          const extractedItems = uniqueItems;
           
           if (extractedItems.length === 0) {
             newProcessedItems.push({
