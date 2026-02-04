@@ -31,7 +31,7 @@ const KNOWN_ITEMS = [
 ];
 
 const EMPLOYEE_NAMES = [
-  "Marcus Johnson", "Sarah Williams", "David Chen", 
+  "Shaun Dubuisson", "Sarah Williams", "David Chen", 
   "Emily Rodriguez", "James Thompson"
 ];
 
