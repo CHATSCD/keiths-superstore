@@ -36,7 +36,7 @@ interface WasteEntry {
 }
 
 const defaultEmployees: Employee[] = [
-  { id: "1", name: "Marcus Johnson", role: "manager", active: true },
+  { id: "1", name: "Shaun Dubuisson", role: "employee", active: true },
   { id: "2", name: "Sarah Williams", role: "employee", active: true },
   { id: "3", name: "David Chen", role: "employee", active: true },
   { id: "4", name: "Emily Rodriguez", role: "employee", active: true },
